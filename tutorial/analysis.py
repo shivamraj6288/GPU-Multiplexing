@@ -14,7 +14,7 @@ for file_name in files:
     y = []
     with open(file_name,'r') as csvfile:
         lines = csv.reader(csvfile, delimiter=",")
-        for row in lines[5:]:
+        for row in lines:
             x.append(int(row[0]))
             y.append(int(row[1]))
     label =""
