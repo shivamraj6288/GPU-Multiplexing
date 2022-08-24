@@ -80,6 +80,8 @@ int main (int argc, char* argv[]) {
     string csv_file_name = "log"+to_string(getpid())+".csv";
     log_file.open(csv_file_name);
     
+    vec_add<<<grid_size, block_size>>> (a,b,c,n);
+    
     while(rem--){
         vec_add<<<grid_size, block_size>>> (a,b,c,n);
         through_put++;
