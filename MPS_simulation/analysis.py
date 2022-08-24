@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 #     exit()
 files=[f"log{x}.csv" for x in sys.argv[1:]]
 
-fig1 - plt.figure("without_restriction")
+fig1 = plt.figure("without_restriction")
 i=1
 for file_name in files[0:3]:
     x = []
@@ -77,7 +77,7 @@ plt.legend()
 # plt.show()
 plt.savefig(f"result_with_restriction.png")
 
-fig3=plt.fig("Comparing independent performance")
+fig3=plt.figure("Comparing independent performance")
 with open(files[0],'r') as csvfile:
     lines = csv.reader(csvfile, delimiter=",")
     for row in lines:

@@ -1,5 +1,5 @@
 #!/bin/bash
-reps=50000
+reps=10000
 resource_per_process=20
 
 # ===============compiling============ #
@@ -7,14 +7,13 @@ echo "Compiling file"
 nvcc -o vec.o vector_add_um.cu
 echo "File compiled"
 
-#=========setting gpu limit============= #
 ./set_gpu_limits.sh -1 -1
 
 
 echo "Running P1 independently"
 ./vec.o $reps &
 pid1=$!
-echo "Process $pid1 starts" >> "log.txt"
+echo "Process $pid1 starts" > "log.txt"
 wait 
 echo "P1 complete"
 echo "Process $pid1 completes" >> "log.txt"
@@ -34,7 +33,9 @@ pid3=$!
 echo "Process $pid3 starts" >> "log.txt"
 wait 
 
-# =====================
+#===================== setting gpu limit ==============
+echo "Setting resource limit"
+echo "Setting resource limit" >> log.txt
 
 ./set_gpu_limits.sh -1 $resource_per_process
 
@@ -51,8 +52,8 @@ pid5=$!
 echo "Process $pid5 starts" >> "log.txt"
 for i in {1..10}
 do 
-rem=$(( 6 - i ))
-echo "Waiting for $rem secs";
+rem=$(( 11 - i ))
+echo "Waiting for $rem secs"
 sleep 1 
 done
 echo "Running P2"
