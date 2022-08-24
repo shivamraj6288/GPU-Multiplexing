@@ -5,3 +5,4 @@
 *.cubin
 *.fatbin
 tutorial/venv/
+.vscode
