@@ -1,5 +1,5 @@
 #!/bin/bash
-reps=10000
+reps=100000
 resource_per_process=20
 
 # ===============compiling============ #
