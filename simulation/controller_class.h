@@ -14,59 +14,62 @@ using namespace std;
 
 
 class Controller {
-    queue<QueueElements> queue;
-    int available_blocks;
-    bool scheduling_process_running;
-    int server_fd,new_socket, valread;
+
+    private:
+    int server_fd,new_socket, valread, addrlen;
+    struct sockaddr_in address;
 
     public:
+    static queue<QueueElements> pending_queue;
+    static int available_blocks;
+    static bool scheduling_process_running;
 
     Controller() {
-        this->available_blocks=0;
-        this->scheduling_process_running=false;
+        
     }
 
-    int allocate_blocks(QueueElements *element) {
-        return min(element->num_blocks, this->available_blocks/10);
+    static int allocate_blocks(QueueElements *element) {
+        return min(element->num_blocks, available_blocks/10);
     }
 
-    void process_queue(){
+
+
+    static void process_queue(){
         // cout <<"scheduling thread running" << endl;
-        this->scheduling_process_running=true;
+        scheduling_process_running=true;
         ServerToClientMsg *send_msg = new ServerToClientMsg();
-        while(!this->queue->empty()){
-            if(this->available_blocks<=0){
+        while(!pending_queue.empty()){
+            if(available_blocks<=0){
                 sleep(2);
             }
             else{
-                QueueElements element = this->queue.front();
-                this->queue.pop();
+                QueueElements element = pending_queue.front();
+                pending_queue.pop();
 
                 send_msg->num_blocks = allocate_blocks(&element);
-                this->available_blocks-=send_msg->num_blocks;
+                available_blocks-=send_msg->num_blocks;
                 send(element.socket, send_msg, sizeof(send_msg), 0);
                 printf("Server send msg, num_blocks: %d\n", send_msg->num_blocks);
                 element.num_blocks -= send_msg->num_blocks;
-                if(element.num_blocks!=0) this->queue.push(element);
+                if(element.num_blocks!=0) pending_queue.push(element);
                 else close(element.socket);
             }
         
         }
 
-        this->scheduling_process_running=false;
+        scheduling_process_running=false;
         // cout <<"scheduling thread exited" << endl;
     }
-    void reset_max_available_blocks() {
+    static void reset_max_available_blocks() {
         while(true){
             sleep(3);
-            this->available_blocks=1000;
+            available_blocks=1000;
         }
     }
 
     void bind_server() {
-        struct sockaddr_in address;
         int opt = 1;
-        int addrlen = sizeof(address);
+        addrlen = sizeof(address);
 
         if((server_fd=socket(AF_INET,SOCK_STREAM, 0))==0){
             perror("socket failed");
@@ -107,9 +110,9 @@ class Controller {
             ClientToServerMsg *recv_msg = new ClientToServerMsg();
             valread = read(new_socket, recv_msg, sizeof(recv_msg));
             QueueElements new_element(new_socket, recv_msg);
-            this->pending_queue.push(new_element);
-            if(!this->scheduling_process_running){
-                async(this->process_queue);
+            pending_queue.push(new_element);
+            if(!scheduling_process_running){
+                async(process_queue);
             }
 
         }

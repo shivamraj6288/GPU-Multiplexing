@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <future>
+#include <thread>
 
 #include "utility.h"
 using namespace std;
@@ -15,20 +16,22 @@ using namespace std;
 queue<pair<int,int>> pending_queue;
 int max_blocks_available=1000;
 bool scheduling_process_running;
+bool stop_reset_process;
 
-void process_queue(queue<pair<int,int>> *queue, int *available_blocks, bool *process_running){
+void process_queue(){
     // cout <<"scheduling thread running" << endl;
+    scheduling_process_running = true;
     server_to_client_msg *send_msg = new server_to_client_msg();
-    while(!queue->empty()){
-        if(*available_blocks<=0){
+    while(!pending_queue.empty()){
+        if(max_blocks_available<=0){
             sleep(2);
         }
         else{
-            pair<int,int> pr = queue->front();
-            queue->pop();
+            pair<int,int> pr = pending_queue.front();
+            pending_queue->pop();
 
-            send_msg->num_blocks = min(pr.second, *available_blocks/10);
-            available_blocks-=send_msg->num_blocks;
+            send_msg->num_blocks = min(pr.second, max_blocks_available/10);
+            max_blocks_available-=send_msg->num_blocks;
             send(pr.first, send_msg, sizeof(send_msg), 0);
             printf("Server send msg, num_blocks: %d\n", send_msg->num_blocks);
             pr.second -= send_msg->num_blocks;
@@ -37,14 +40,15 @@ void process_queue(queue<pair<int,int>> *queue, int *available_blocks, bool *pro
        
     }
 
-    *process_running=false;
+    scheduling_process_running=false;
     // cout <<"scheduling thread exited" << endl;
 }
 
 void reset_max_available_blocks(int *available_blocks){
     while(true) {
         sleep(3);
-        *available_blocks=1000;
+        max_blocks_available=1000;
+        if(stop_reset_process) break;
     }
 }
 
@@ -88,16 +92,14 @@ int main (int argc, char* argv[]) {
     // printf("waiting2 \n");
 
     scheduling_process_running=true;
-    async(process_queue, &pending_queue, &max_blocks_available, &scheduling_process_running);
-    async(reset_max_available_blocks, &max_blocks_available);
+    stop_reset_process=false;
+    thread process_thread(process_queue);
+    thread available_blocks_thread(reset_max_available_blocks);
+    // async(process_queue, &pending_queue, &max_blocks_available, &scheduling_process_running);
+    // async(reset_max_available_blocks, &max_blocks_available);
     // set<int> new_sockets;
     while (true) {
-        if(!scheduling_process_running){
-            // cout << "starting ss" << endl;
-            scheduling_process_running=true;
-            async(process_queue, &pending_queue, &max_blocks_available, &scheduling_process_running);
-            // cout << "started" << endl;
-        }
+        
         // cout << "listening started" << endl;
         new_socket=accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
         // cout << "waiitng... "<< endl;
@@ -118,14 +120,19 @@ int main (int argc, char* argv[]) {
         // cout << "request received" << endl;
         if(!scheduling_process_running){
             // cout << "starting ss" << endl;
-            scheduling_process_running=true;
-            async(process_queue, &pending_queue, &max_blocks_available, &scheduling_process_running);
+            // scheduling_process_running=true;
+            thread t1(process_queue);
+            //--async(process_queue, &pending_queue, &max_blocks_available, &scheduling_process_running);
             // cout << "started" << endl;
         }
         // send(new_socket, send_msg, sizeof(send_msg),0);
         // printf("Server send msg, num_blocks: %d\n", send_msg->num_blocks);
 
     }
+    t1.join();
+    process_thread.join();
+    stop_reset_process = true;
+    available_blocks_thread.join();
     // if((new_socket=accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen))<0){
     //     perror("accept");
     //     exit(EXIT_FAILURE);

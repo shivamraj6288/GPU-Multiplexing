@@ -1,13 +1,17 @@
 #include<bits/stdc++.h>
+#include <thread>
 using namespace std;
 int a;
 
-void fn(int *a) {
-    *a=10;
+void fn() {
+    a=10;
 }
 
 int main () {
     a=20;
-    fn(&a);
     cout << a << endl;
+    thread t1(fn);
+    t1.join();
+    cout << a << endl;
+    
 }

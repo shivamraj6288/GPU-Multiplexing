@@ -5,7 +5,7 @@ class ServerToClientMsg {
     public:
     int num_blocks;
 
-    server_to_client_msg(){}
+    ServerToClientMsg(){}
 
 };
 
@@ -13,7 +13,7 @@ class ClientToServerMsg {
     public:
     int num_blocks;
     int pid;
-    client_to_server_msg(){}
+    ClientToServerMsg(){}
 };
 
 class QueueElements{
@@ -34,5 +34,5 @@ class QueueElements{
     }
 
 
-}
+};
 
